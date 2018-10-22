@@ -27,8 +27,8 @@ type webHook struct {
 func (w webHook) Summary() string {
 	return fmt.Sprintf("build on %s on branch %s (%s)",
 		w.Repository.FullName,
-		filepath.Base(w.HeadCommit.ID),
-		w.Ref)
+		w.Ref,
+		filepath.Base(w.HeadCommit.ID))
 }
 
 const webHookEndpoint = "https://build.grid.tf/hook/monitor-watch"
@@ -55,14 +55,31 @@ func main() {
 			Usage: "branch to use for the build",
 			Value: "master",
 		},
+		cli.StringFlag{
+			Name:  "path,p",
+			Usage: "specified the path of the repository to use as source of information for the build",
+			Value: "",
+		},
 	}
 
 	app.Action = func(c *cli.Context) error {
-		var wh webHook
-		wh.Repository.FullName = fmt.Sprintf("%s/%s", c.String("organization"), c.String("repository"))
-		wh.Ref = fmt.Sprintf("ref/head/%s", c.String("branch"))
-		wh.HeadCommit.ID = c.String("commit")
-		wh.Commits = []string{}
+		var (
+			wh  webHook
+			err error
+		)
+
+		if c.String("path") != "" {
+			path := c.String("path")
+			wh, err = Parse(path)
+			if err != nil {
+				log.Fatalf("fail to read the git information from %s: %v", path, err)
+			}
+		} else {
+			wh.Repository.FullName = fmt.Sprintf("%s/%s", c.String("organization"), c.String("repository"))
+			wh.Ref = fmt.Sprintf("ref/head/%s", c.String("branch"))
+			wh.HeadCommit.ID = c.String("commit")
+			wh.Commits = []string{}
+		}
 
 		fmt.Println(wh.Summary())
 
