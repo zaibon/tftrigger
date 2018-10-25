@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/urfave/cli"
 )
@@ -34,18 +35,9 @@ func (w webHook) Summary() string {
 const webHookEndpoint = "https://build.grid.tf/hook/monitor-watch"
 
 func main() {
-
 	app := cli.NewApp()
+	app.ArgsUsage = "[path|ghrepo]"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "organization,o",
-			Value: "threefoldtech",
-			Usage: "github organization",
-		},
-		cli.StringFlag{
-			Name:  "repository,r",
-			Usage: "repository name",
-		},
 		cli.StringFlag{
 			Name:  "commit,c",
 			Usage: "commit hash",
@@ -55,11 +47,6 @@ func main() {
 			Usage: "branch to use for the build",
 			Value: "master",
 		},
-		cli.StringFlag{
-			Name:  "path,p",
-			Usage: "specified the path of the repository to use as source of information for the build",
-			Value: "",
-		},
 	}
 
 	app.Action = func(c *cli.Context) error {
@@ -68,14 +55,25 @@ func main() {
 			err error
 		)
 
-		if c.String("path") != "" {
-			path := c.String("path")
+		// path can be either empty, a FS path to a GitHub Repo, or the fullname of a GitHub repo (organization/repo)
+		path := c.Args().Get(0)
+		switch {
+		case path == "":
+			path, err = os.Getwd()
+			if err != nil {
+				log.Fatalf("fail to get the current working directory as fs path: %v", err)
+			}
+			fallthrough
+		case isDir(path):
 			wh, err = Parse(path)
 			if err != nil {
 				log.Fatalf("fail to read the git information from %s: %v", path, err)
 			}
-		} else {
-			wh.Repository.FullName = fmt.Sprintf("%s/%s", c.String("organization"), c.String("repository"))
+		default: // assume path is in the form of organization/repo
+			if strings.Count(path, "/") != 1 {
+				log.Fatalf("invalid GitHub fullname: %s", path)
+			}
+			wh.Repository.FullName = path
 			wh.Ref = fmt.Sprintf("ref/head/%s", c.String("branch"))
 			wh.HeadCommit.ID = c.String("commit")
 			wh.Commits = []string{}
@@ -111,4 +109,9 @@ func main() {
 		log.Fatalln(err)
 	}
 
+}
+
+func isDir(path string) bool {
+	fi, err := os.Stat(path)
+	return err == nil && fi.Mode().IsDir()
 }
