@@ -32,7 +32,10 @@ func (w webHook) Summary() string {
 		filepath.Base(w.HeadCommit.ID))
 }
 
-const webHookEndpoint = "https://build.grid.tf/hook/monitor-watch"
+const (
+	builderBaseURL  = "https://build.grid.tf"
+	webHookEndpoint = builderBaseURL + "/hook/monitor-watch"
+)
 
 func main() {
 	app := cli.NewApp()
@@ -102,6 +105,7 @@ func main() {
 		}
 
 		fmt.Println("build started")
+		fmt.Printf("go to %s to follow the progress of your build\n", builderBaseURL)
 		return nil
 	}
 
