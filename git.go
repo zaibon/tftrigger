@@ -50,18 +50,18 @@ func repository(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	remote := string(out)
+	return parseOrigin(string(out))
+}
 
-	i := strings.Index(remote, ":")
-	if i == -1 {
-		u, err := url.Parse(string(out))
-		if err != nil {
-			return "", err
-		}
-		repository := strings.SplitAfterN(u.Path, "/", 1)
+func parseOrigin(origin string) (string, error) {
+	remote := strings.TrimSuffix(strings.TrimSpace(origin), ".git")
+
+	u, err := url.Parse(remote)
+	if err == nil {
+		repository := strings.SplitAfterN(u.Path[1:], "/", 1)
 		return strings.Join(repository, "/"), nil
 	}
 
-	return remote[i+1 : len(remote)-5], nil
-
+	i := strings.Index(remote, ":")
+	return remote[i+1:], nil
 }
