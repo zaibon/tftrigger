@@ -33,8 +33,9 @@ func (w webHook) Summary() string {
 }
 
 const (
-	builderBaseURL  = "https://build.grid.tf"
-	webHookEndpoint = builderBaseURL + "/hook/monitor-watch"
+	builderBaseURL         = "https://build.grid.tf"
+	webHookEndpointDefault = builderBaseURL + "/hook/monitor-watch"
+	webHookEndpointKernel  = builderBaseURL + "/hook/kernel"
 )
 
 func main() {
@@ -89,7 +90,7 @@ func main() {
 			log.Fatalf("fail to serialize the webhook object: %v", err)
 		}
 
-		request, err := http.NewRequest("POST", webHookEndpoint, &body)
+		request, err := http.NewRequest("POST", webHookEndpoint(wh.Repository.FullName), &body)
 		if err != nil {
 			log.Fatalf("error while creating the http request :%v", err)
 		}
@@ -118,4 +119,19 @@ func main() {
 func isDir(path string) bool {
 	fi, err := os.Stat(path)
 	return err == nil && fi.Mode().IsDir()
+}
+
+func webHookEndpoint(repo string) string {
+	kernelRepos := []string{
+		"threefoldtech/0-core",
+		"threefoldtech/0-initramfs",
+		"threefoldtech/0-fs",
+	}
+
+	for _, r := range kernelRepos {
+		if r == repo {
+			return webHookEndpointKernel
+		}
+	}
+	return webHookEndpointDefault
 }
