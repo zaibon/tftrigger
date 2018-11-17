@@ -1,4 +1,4 @@
-# tftrigger
+# tftrigger [![Build Status](https://travis-ci.com/zaibon/tftrigger.svg?branch=master)](https://travis-ci.com/zaibon/tftrigger)
 Small tool that trigger the threefold auto-build for a specific repo, branch and commit.
 
 ## Usage
